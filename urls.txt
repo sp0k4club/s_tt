@@ -1,0 +1,8 @@
+# Daftar URL video/photo TikTok yang mau di-post ke FB Reels.
+# 1 URL per baris. Baris diawali '#' = komentar (di-skip).
+# Caption otomatis diambil dari TikTok oEmbed (hashtag asli).
+#
+# Cara dapet URL: buka video TikTok > Share > Copy link > paste di sini.
+# Contoh:
+https://www.tiktok.com/@helhellaa/video/7541781364996181253
+https://www.tiktok.com/@helhellaa/photo/7648467041258736916
