@@ -50,7 +50,7 @@ except ImportError:
 # =========================
 #  KONFIGURASI
 # =========================
-DELAY_MENIT = 3            # delay antar post video baru (menit). Aman: 15-30
+DELAY_MENIT = 5            # delay antar post video baru (menit). Aman: 15-30
 MAX_VIDEO = 0             # 0 = semua, isi angka buat limit
 COOKIES_FILE = "cookies.json"
 DOWNLOAD_DIR = "downloads"
