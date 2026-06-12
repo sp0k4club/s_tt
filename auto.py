@@ -447,11 +447,17 @@ def ssstiktok_hd_resolve(video_url: str):
             return None
         html = r.json().get("data", "")
 
+        # Caption dari response ssstiktok.dev (<h3>...</h3>) - reliable, ga perlu oEmbed
+        cap = ""
+        mc = re.search(r"<h3[^>]*>(.*?)</h3>", html, re.DOTALL)
+        if mc:
+            cap = _html.unescape(re.sub(r"<[^>]+>", "", mc.group(1))).strip()
+
         # --- Video biasa: link "Download MP4 HD" ---
         for m in re.finditer(r'<a\s+[^>]*href="(https?://[^"]+)"[^>]*>(.*?)</a>', html, re.DOTALL):
             label = re.sub(r"<[^>]+>", "", m.group(2)).strip()
             if "HD" in label and "MP4" in label:
-                return ("url", m.group(1))
+                return ("url", m.group(1), cap)
 
         # --- Photo carousel: render slideshow 1080p ---
         if 'id="ConvertToVideo"' in html or "data-imageData" in html:
@@ -483,7 +489,7 @@ def ssstiktok_hd_resolve(video_url: str):
                     return None
                 res = j.get("result") or ""
                 if j.get("status") == "success" and res.startswith("http"):
-                    return ("url", res)
+                    return ("url", res, cap)
                 # "Converting" / belum jadi -> tunggu & coba lagi
                 if "convert" in res.lower() or j.get("status") in ("processing", "converting"):
                     time.sleep(3)
@@ -590,6 +596,13 @@ def download_video(video: dict, outdir: Path) -> Optional[Path]:
         if DOWNLOAD_SOURCE == "ssstiktok":
             log_dim("ssstiktok.dev ga bisa (kemungkinan photo carousel)")
         return None
+
+    # Caption dari ssstiktok.dev (elemen ke-3 return) - fallback kalo oEmbed kosong
+    if len(result) > 2 and result[2] and not video.get("title"):
+        video["title"] = result[2]
+        # rename path biar nama file ikut caption
+        new_fname = f"{video['id']}_{safe_filename(video['title'])}.mp4"
+        path = outdir / new_fname
 
     mp4_url = result[1]
     try:
@@ -1070,20 +1083,19 @@ def main():
     for i, v in enumerate(videos, start=1):
         header_video(i, total, v["id"])
 
-        # caption (oEmbed) - fetch per-video, hindari rate-limit
-        if not v.get("title") and v.get("_page_url"):
-            cap = fetch_caption(v["_page_url"])
-            if cap:
-                v["title"] = cap
-        cap_show = v.get("title") or "(kosong)"
-        log_step("caption", _c(cap_show[:65], C.WHITE))
-
-        # download
+        # Download dulu (download_video bisa ngisi v["title"] dari caption ssstiktok.dev)
         vpath = download_video(v, outdir)
         if not vpath:
             log_err(f"gagal download (URL salah/dihapus/private) → skip")
             failed += 1
             continue
+
+        # Caption: kalo masih kosong (mis sumber ssstik.io), ambil dari oEmbed
+        if not v.get("title") and v.get("_page_url"):
+            cap = fetch_caption(v["_page_url"])
+            if cap:
+                v["title"] = cap
+        log_step("caption", _c((v.get("title") or "(kosong)")[:65], C.WHITE))
 
         # upload + publish
         try:
