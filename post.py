@@ -51,7 +51,7 @@ except ImportError:
 # =========================
 #  KONFIGURASI
 # =========================
-DELAY_MENIT = 3            # delay antar post video baru (menit). Aman: 15-30
+DELAY_MENIT = 17            # delay antar post video baru (menit). Aman: 15-30
 MAX_VIDEO = 0             # 0 = semua, isi angka buat limit
 COOKIES_FILE = "cookies.json"
 DOWNLOAD_DIR = "downloads"
@@ -567,7 +567,9 @@ def safe_filename(s: str, maxlen: int = 80) -> str:
 
 def download_video(video: dict, outdir: Path) -> Optional[Path]:
     outdir.mkdir(parents=True, exist_ok=True)
-    fname = f"{video['id']}_{safe_filename(video.get('title', ''))}.mp4"
+    # Nama file pakai ID aja (caption bisa kepanjangan + unicode -> error filesystem).
+    # Caption tetep dipakai buat caption post, cuma ga buat nama file.
+    fname = f"{video['id']}.mp4"
     path = outdir / fname
     if path.exists() and path.stat().st_size > 0:
         log_dim(f"udah ada, skip download: {fname}")
@@ -602,9 +604,6 @@ def download_video(video: dict, outdir: Path) -> Optional[Path]:
     # Caption dari ssstiktok.dev (elemen ke-3 return) - fallback kalo oEmbed kosong
     if len(result) > 2 and result[2] and not video.get("title"):
         video["title"] = result[2]
-        # rename path biar nama file ikut caption
-        new_fname = f"{video['id']}_{safe_filename(video['title'])}.mp4"
-        path = outdir / new_fname
 
     mp4_url = result[1]
     try:
